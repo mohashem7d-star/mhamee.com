@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جيل قادر للتنمية والتطوير | منصة مهامي</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #6366f1; --primary-dark: #4338ca;
+            --bg-body: #0f172a; --bg-card: #1e293b;
+            --text-main: #f8fafc; --text-dim: #94a3b8;
+            --p-low: #10b981; --p-med: #f59e0b; --p-high: #ef4444;
+            --st-pending: #94a3b8; --st-progress: #3b82f6; --st-submitted: #f59e0b; --st-completed: #8b5cf6;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; transition: all 0.25s ease; }
+        body { background-color: var(--bg-body); color: var(--text-main); line-height: 1.6; }
+
+        #notification-stack { position: fixed; top: 20px; left: 20px; z-index: 10000; }
+        .toast { background: var(--bg-card); border-right: 5px solid var(--primary); padding: 18px 25px; border-radius: 15px; margin-bottom: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.5); animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; min-width: 320px; border: 1px solid rgba(255,255,255,0.05); }
+        @keyframes slideIn { from { transform: translateX(-120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        .auth-nav { display: flex; justify-content: space-between; padding: 25px 50px; background: var(--bg-card); border-bottom: 4px solid var(--primary); }
+        .auth-container { height: calc(100vh - 100px); display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #1e293b 0%, #0f172a 100%); }
+        .auth-card { background: var(--bg-card); padding: 45px; border-radius: 30px; width: 100%; max-width: 450px; box-shadow: 0 30px 60px rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.1); }
+
+        .app-layout { display: flex; min-height: 100vh; }
+        aside { width: 300px; background: var(--bg-card); padding: 30px; border-left: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; transition: all 0.3s; }
+        .sidebar-hidden { margin-right: -300px; display: none !important; }
+        main { flex: 1; padding: 40px; overflow-y: auto; }
+
+        .nav-link { padding: 16px 20px; border-radius: 15px; color: var(--text-dim); display: flex; align-items: center; gap: 15px; margin-bottom: 10px; cursor: pointer; font-weight: 600; text-decoration: none; }
+        .nav-link:hover { background: rgba(255,255,255,0.05); color: #fff; transform: translateX(-5px); }
+        .nav-link.active { background: var(--primary); color: #fff; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3); }
+
+        .card { background: var(--bg-card); padding: 30px; border-radius: 25px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 30px; position: relative;}
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; margin-bottom: 35px; }
+        .stat-item { background: linear-gradient(145deg, #1e293b, #1a2233); padding: 25px; border-radius: 22px; text-align: center; border-bottom: 5px solid var(--primary); }
+        
+        input, select, textarea { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 15px; outline: none; font-size: 15px; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2); }
+        .btn { padding: 14px 28px; border-radius: 12px; border: none; cursor: pointer; font-weight: 800; display: inline-flex; align-items: center; gap: 10px; justify-content: center; }
+        .btn-p { background: var(--primary); color: white; }
+        .btn-d { background: #ef4444; color: white; }
+        .btn-sm { padding: 8px 15px; font-size: 13px; border-radius: 8px;}
+
+        .search-box { margin-bottom: 20px; position: relative; }
+        .search-box input { padding-right: 45px; background: #0f172a url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') no-repeat right 15px center; }
+
+        .task-card { background: #161e2d; padding: 25px; border-radius: 20px; border-right: 8px solid #444; margin-bottom: 20px; position: relative; }
+        .task-status-pending { border-right-color: var(--st-pending); }
+        .task-status-progress { border-right-color: var(--st-progress); }
+        .task-status-submitted { border-right-color: var(--st-submitted); }
+        .task-status-completed { border-right-color: var(--st-completed); opacity: 0.85; }
+
+        .member-item { display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; margin-bottom: 12px; flex-wrap: wrap; gap: 15px;}
+        .avatar { width: 65px; height: 65px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); padding: 2px; }
+
+        .hidden { display: none !important; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 11000; backdrop-filter: blur(5px); overflow-y: auto; padding: 20px;}
+        .modal-box { background: var(--bg-card); padding: 40px; border-radius: 30px; width: 100%; max-width: 650px; position: relative; max-height: 90vh; overflow-y: auto;}
+        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        
+        .perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .perm-item { background: #0f172a; padding: 10px 15px; border-radius: 8px; display: flex; align-items: center; gap: 10px; border: 1px solid #334155;}
+        .perm-item input { width: auto; margin: 0; }
+        
+        .disabled-field { opacity: 0.6; cursor: not-allowed; background: #1a2233 !important; }
+
+        /* ستايل قائمة الإشعارات والوقت */
+        .notif-bell { position: relative; cursor: pointer; padding: 10px; font-size: 22px; }
+        .notif-badge { position: absolute; top: 0; right: 0; background: #ef4444; color: #fff; font-size: 11px; font-weight: bold; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .notif-dropdown { position: absolute; top: 50px; left: 0; background: var(--bg-card); width: 350px; border-radius: 15px; border: 1px solid #334155; box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 2000; max-height: 400px; overflow-y: auto; display: none; }
+        .notif-dropdown.show { display: block; }
+        .notif-item { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+        .notif-item:last-child { border-bottom: none; }
+        .notif-date { color: var(--text-dim); font-size: 11px; margin-top: 5px; display: block; }
+        .top-datetime { font-size: 15px; color: var(--text-dim); font-weight: 600; background: rgba(0,0,0,0.2); padding: 8px 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+    </style>
+</head>
+<body>
+
+<div id="notification-stack"></div>
+<div id="modal-container" class="hidden"></div>
+
+<section id="view-auth">
+    <nav class="auth-nav">
+        <div class="brand">
+            <h2 style="font-weight:900; letter-spacing:-1px">جيل قادر للتنمية والتطوير</h2>
+            <p style="color:var(--text-dim); font-size:12px">منصة مهامي</p>
+        </div>
+    </nav>
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1 style="text-align:center; margin-bottom:10px; font-weight:900">دخول المنصة</h1>
+            <input type="text" id="login-username" placeholder="اسم المستخدم">
+            <input type="password" id="login-password" placeholder="كلمة المرور">
+            <button class="btn btn-p" style="width:100%" onclick="Logic.auth()">تسجيل الدخول</button>
+            <div style="display:flex; justify-content:space-between; margin-top:15px">
+                <a href="#" style="color:var(--text-dim); text-decoration:none; font-size:13px" onclick="Logic.toast('غير مسجل؟ يرجى التواصل مع مسؤول النظام لإنشاء حسابك.')">غير مسجل؟</a>
+                <a href="#" style="color:var(--text-dim); text-decoration:none; font-size:13px" onclick="Logic.routeForgotPass()">نسيت كلمة المرور؟</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="view-forgot" class="hidden">
+    <nav class="auth-nav">
+        <div class="brand">
+            <h2 style="font-weight:900; letter-spacing:-1px">استعادة بيانات الدخول</h2>
+        </div>
+        <button class="btn btn-sm" onclick="Logic.routeLogin()">العودة للدخول</button>
+    </nav>
+    <div class="auth-container">
+        <div class="auth-card" id="forgot-step-1">
+            <h2 style="text-align:center; margin-bottom:20px">التحقق من الهوية</h2>
+            <input type="text" id="f-username" placeholder="اسم المستخدم المسجل">
+            <input type="text" id="f-nid" placeholder="الرقم القومي (14 رقم)" maxlength="14">
+            <button class="btn btn-p" style="width:100%" onclick="Logic.verifyForgot()">تحقق من الحساب</button>
+        </div>
+        <div class="auth-card hidden" id="forgot-step-2">
+            <h2 style="text-align:center; margin-bottom:20px; color:#10b981">تم التحقق بنجاح</h2>
+            <p style="text-align:center; margin-bottom:15px; font-size:14px; color:var(--text-dim)" id="f-current-pass"></p>
+            <input type="password" id="f-newpass" placeholder="كلمة المرور الجديدة (اختياري)">
+            <button class="btn btn-p" style="width:100%" onclick="Logic.resetForgot()">حفظ والعودة للدخول</button>
+        </div>
+    </div>
+</section>
+
+<section id="view-app" class="app-layout hidden">
+    <aside id="app-sidebar">
+        <div id="user-sidebar-card" style="text-align:center; margin-bottom:40px"></div>
+        <nav id="app-navigation"></nav>
+    </aside>
+    <main>
+        <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px; position:relative; flex-wrap:wrap; gap:15px;">
+            <div style="display:flex; align-items:center; gap:15px">
+                <button class="btn" style="background:#334155; padding:10px 15px" onclick="Logic.toggleSidebar()">☰</button>
+                <div>
+                    <h1 id="page-title" style="font-weight:900; font-size:32px">لوحة الإحصائيات</h1>
+                    <p id="page-subtitle" style="color:var(--text-dim)"></p>
+                </div>
+            </div>
+            <div id="header-extra" style="display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+                <div class="top-datetime" id="live-datetime">--:--</div>
+                <div class="notif-bell" onclick="Logic.toggleNotifDropdown()">
+                    🔔 <span class="notif-badge" id="notif-badge-count">0</span>
+                    <div class="notif-dropdown" id="notif-dropdown-box"></div>
+                </div>
+                <button class="btn btn-d" onclick="location.reload()">تسجيل الخروج 🚪</button>
+            </div>
+        </header>
+        <div id="dynamic-content"></div>
+    </main>
+</section>
+
+<script>
+const governorates = ['البحيرة', 'الإسكندرية', 'الغربية', 'مطروح', 'كفر الشيخ', 'الشرقية', 'المنوفية', 'دمياط', 'الدقهلية', 'القاهرة', 'الجيزة', 'القليوبية', 'الفيوم', 'بني سويف', 'المنيا', 'سوهاج', 'أسيوط', 'قنا', 'الأقصر', 'أسوان', 'الوادي الجديد', 'البحر الأحمر', 'بورسعيد', 'الإسماعيلية', 'السويس', 'جنوب سيناء', 'شمال سيناء'];
+const sectors = ['رئاسة جيل قادر', 'اللجنة الرقابية', 'الهيئة الاستشارية', 'المكتب الفني', 'الهيئة الإدارية', 'قطاع التدريب', 'المكتب الإعلامي', 'المكتب التنفيذي', 'الهيئة المعاونة', 'قطاع التنظيم', 'اللجان العامة'];
+
+const Logic = {
+    db: {
+        users: JSON.parse(localStorage.getItem('gq_users')) || [
+            {
+                user: 'admin', pass: '123456', name: 'المسؤول المتقدم', role: 'super', 
+                nid: '11111111111111', phone: '01012345678', mid: '001', title: 'مدير النظام',
+                gov: 'القاهرة', sector: 'رئاسة جيل قادر', status: 'active', img: '', regYear: '2026',
+                perms: {
+                    t_recv: true, t_create: true, s_pub: true, s_priv: true, 
+                    m_reg: true, m_view: true, r_reply: true, d_wipe: true, d_export: true, full: true
+                }
+            }
+        ],
+        tasks: JSON.parse(localStorage.getItem('gq_tasks')) || [],
+        requests: JSON.parse(localStorage.getItem('gq_requests')) || [],
+        notifications: JSON.parse(localStorage.getItem('gq_notifications')) || []
+    },
+    
+    session: null,
+    imageBuffer: "",
+    editImageBuffer: "",
+    taskSearch: "",
+    memberSearch: "",
+    tempForgotUser: null,
+
+    save: () => {
+        localStorage.setItem('gq_users', JSON.stringify(Logic.db.users));
+        localStorage.setItem('gq_tasks', JSON.stringify(Logic.db.tasks));
+        localStorage.setItem('gq_requests', JSON.stringify(Logic.db.requests));
+        localStorage.setItem('gq_notifications', JSON.stringify(Logic.db.notifications));
+    },
+
+    toast: (msg) => {
+        const stack = document.getElementById('notification-stack');
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.innerHTML = `<b>🛡️ إشعار النظام</b><br>${msg}`;
+        stack.appendChild(t);
+        setTimeout(() => t.remove(), 4500);
+    },
+
+    toggleSidebar: () => {
+        document.getElementById('app-sidebar').classList.toggle('sidebar-hidden');
+    },
+
+    startClock: () => {
+        setInterval(() => {
+            const now = new Date();
+            const time = now.toLocaleTimeString('ar-EG');
+            const date = now.toLocaleDateString('ar-EG');
+            const el = document.getElementById('live-datetime');
+            if(el) el.innerText = `${date} - ${time}`;
+        }, 1000);
+    },
+
+    // --- نظام الإشعارات الداخلي ---
+    pushNotif: (msg, targetUser = 'all') => {
+        Logic.db.notifications.push({ id: Date.now(), msg: msg, target: targetUser, date: new Date().toLocaleString('ar-EG') });
+        Logic.save();
+        Logic.updateNotifUI();
+    },
+
+    updateNotifUI: () => {
+        if(!Logic.session) return;
+        const myNotifs = Logic.db.notifications.filter(n => n.target === 'all' || n.target === Logic.session.user || (n.target === 'admins' && Logic.session.role !== 'member')).reverse().slice(0, 30);
+        
+        document.getElementById('notif-badge-count').innerText = myNotifs.length > 99 ? '99+' : myNotifs.length;
+        const box = document.getElementById('notif-dropdown-box');
+        
+        if(myNotifs.length === 0) {
+            box.innerHTML = `<div class="notif-item" style="text-align:center; color:var(--text-dim)">لا توجد إشعارات حالياً</div>`;
+        } else {
+            box.innerHTML = myNotifs.map(n => `<div class="notif-item">${n.msg}<span class="notif-date">${n.date}</span></div>`).join('');
+        }
+    },
+
+    toggleNotifDropdown: () => { document.getElementById('notif-dropdown-box').classList.toggle('show'); },
+
+    // --- نظام استعادة كلمة المرور ---
+    routeForgotPass: () => {
+        document.getElementById('view-auth').classList.add('hidden');
+        document.getElementById('view-forgot').classList.remove('hidden');
+        document.getElementById('forgot-step-1').classList.remove('hidden');
+        document.getElementById('forgot-step-2').classList.add('hidden');
+        document.getElementById('f-username').value = '';
+        document.getElementById('f-nid').value = '';
+    },
+    
+    routeLogin: () => {
+        document.getElementById('view-forgot').classList.add('hidden');
+        document.getElementById('view-auth').classList.remove('hidden');
+    },
+
+    verifyForgot: () => {
+        const u = document.getElementById('f-username').value;
+        const n = document.getElementById('f-nid').value;
+        const found = Logic.db.users.find(x => x.user === u && x.nid === n);
+        if(found) {
+            Logic.tempForgotUser = found;
+            document.getElementById('f-current-pass').innerText = `كلمة المرور الحالية: ${found.pass}`;
+            document.getElementById('forgot-step-1').classList.add('hidden');
+            document.getElementById('forgot-step-2').classList.remove('hidden');
+        } else {
+            Logic.toast("البيانات المدخلة لا تتطابق مع أي حساب مسجل");
+        }
+    },
+
+    resetForgot: () => {
+        const p = document.getElementById('f-newpass').value;
+        if(p) { Logic.tempForgotUser.pass = p; Logic.save(); Logic.toast("تم تحديث كلمة المرور بنجاح، يمكنك تسجيل الدخول الآن"); }
+        Logic.routeLogin();
+    },
+
+    // --- نظام تسجيل الدخول الرئيسي ---
+    auth: () => {
+        const u = document.getElementById('login-username').value;
+        const p = document.getElementById('login-password').value;
+        const found = Logic.db.users.find(x => x.user === u && x.pass === p);
+        if(!found) return Logic.toast('خطأ في البيانات، يرجى المحاولة مرة أخرى');
+        if(found.status === 'inactive') return Logic.toast('هذا الحساب معطل مؤقتاً');
+        Logic.session = found;
+        document.getElementById('view-auth').classList.add('hidden');
+        document.getElementById('view-app').classList.remove('hidden');
+        Logic.updateNotifUI();
+        Logic.renderUI();
+    },
+
+    renderUI: () => {
+        const s = Logic.session;
+        document.getElementById('user-sidebar-card').innerHTML = `
+            <img src="${s.img || 'https://ui-avatars.com/api/?name='+s.name}" class="avatar">
+            <h3 style="margin-top:15px">${s.name}</h3>
+            <p style="font-size:12px; color:var(--text-dim); margin-bottom:5px">${s.title || ''}</p>
+            <span style="background:rgba(99, 102, 241, 0.2); color:var(--primary); padding:3px 12px; border-radius:15px; font-size:11px; font-weight:bold">${s.role === 'super' ? 'مسؤول متقدم' : s.role === 'admin' ? 'مسؤول' : 'عضو'}</span>
+        `;
+
+        const links = [
+            {id:'dash', n:'الرئيسية', icon:'📊'},
+            {id:'tasks', n:'التكليفات والمهام', icon:'📋'},
+            {id:'reqs', n:'الطلبات الرسمية', icon:'📥'},
+            {id:'profile', n:'إعدادات الحساب', icon:'⚙️'}
+        ];
+        
+        if(s.role === 'super' || s.role === 'admin' || (s.perms && s.perms.m_view)) { links.splice(3, 0, {id:'members', n:'إدارة الأعضاء', icon:'👥'}); }
+        document.getElementById('app-navigation').innerHTML = links.map(l => `
+            <div class="nav-link" id="nl-${l.id}" onclick="Logic.route('${l.id}')"><span>${l.icon}</span> <span>${l.n}</span></div>
+        `).join('');
+
+        Logic.route('dash');
+    },
+
+    route: (id) => {
+        document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+        document.getElementById('nl-'+id)?.classList.add('active');
+        const area = document.getElementById('dynamic-content');
+        if(id === 'dash') Logic.viewDash(area);
+        if(id === 'tasks') Logic.viewTasks(area);
+        if(id === 'members') Logic.viewMembers(area);
+        if(id === 'reqs') Logic.viewReqs(area);
+        if(id === 'profile') Logic.viewProfile(area);
+    },
+
+    // --- DASHBOARD ---
+    viewDash: (area) => {
+        document.getElementById('page-title').innerText = "مركز الأداء";
+        const p = Logic.session.perms || {};
+        const isFullAdmin = Logic.session.role === 'super' || Logic.session.role === 'admin' || p.full;
+        
+        // تطبيق صلاحيات رؤية الإحصائيات بناءً على s_pub و s_priv
+        let tasks = [];
+        if (isFullAdmin || p.s_pub) {
+            tasks = Logic.db.tasks;
+        } else if (p.s_priv) {
+            tasks = Logic.db.tasks.filter(t => t.to === Logic.session.user);
+        }
+
+        const completed = tasks.filter(t => t.status === 'completed').length;
+        const score = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
+
+        let superWipeBtn = "";
+        if(Logic.session.role === 'super' || p.d_wipe) {
+            superWipeBtn = `<button class="btn btn-d btn-sm" onclick="Logic.wipeAll()">🚨 حذف بيانات المنصة بالكامل</button>`;
+        }
+
+        area.innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-item"><h4>إجمالي التكليفات</h4><h2 style="font-size:35px">${tasks.length}</h2></div>
+                <div class="stat-item"><h4>قيد التنفيذ / المراجعة</h4><h2 style="font-size:35px">${tasks.filter(t=>t.status==='progress' || t.status==='submitted').length}</h2></div>
+                <div class="stat-item"><h4>نسبة الإنجاز المعتمد</h4><h2 style="font-size:35px; color:var(--primary)">${score}%</h2></div>
+            </div>
+            <div class="card">
+                <h3>📢 أدوات وتقارير النظام</h3><br>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px">
+                    ${(p.d_export || isFullAdmin) ? `<button class="btn btn-sm btn-p" style="background:#10b981" onclick="Logic.exportAll()">📥 تنزيل بيانات المنصة</button>` : ''}
+                    ${(Logic.session.role === 'super' || Logic.session.role === 'admin') ? `<button class="btn btn-sm btn-p" style="background:#f59e0b" onclick="Logic.generateMonthlyPDF()">📄 تقرير الإنجاز الشهري PDF</button>` : ''}
+                    ${superWipeBtn}
+                </div>
+                <p style="color:var(--text-dim)">يرجى الالتزام بمواعيد تسليم التكليفات. لن يتم اعتبار المهمة منتهية إلا بعد اعتماد المسؤول لتقييم التنفيذ.</p>
+            </div>
+        `;
+    },
+
+    generateMonthlyPDF: () => {
+        // إنشاء عنصر مؤقت لطباعة التقرير بخلفية بيضاء وخطوط مرئية
+        const el = document.createElement('div');
+        el.style.padding = '30px';
+        el.style.direction = 'rtl';
+        el.style.fontFamily = 'Cairo, sans-serif';
+        el.style.background = '#fff';
+        el.style.color = '#000';
+        el.style.position = 'absolute';
+        el.style.left = '-9999px';
+        
+        let rows = Logic.db.tasks.map(t => {
+            const assignedTo = t.to === 'all' ? 'الجميع' : (Logic.db.users.find(u=>u.user===t.to)?.name || t.to);
+            const statusAr = t.status === 'pending' ? 'بانتظار البدء' : t.status === 'progress' ? 'قيد التنفيذ' : t.status === 'submitted' ? 'مراجعة' : 'مكتملة';
+            const rate = t.rating ? ` (${t.rating} نجوم)` : '';
+            return `<tr style="border-bottom:1px solid #ddd">
+                <td style="padding:10px">${t.id}</td>
+                <td style="padding:10px">${t.title}</td>
+                <td style="padding:10px">${assignedTo}</td>
+                <td style="padding:10px">${statusAr}${rate}</td>
+                <td style="padding:10px">${t.deadline}</td>
+            </tr>`;
+        }).join('');
+
+        el.innerHTML = `
+            <div style="text-align:center; margin-bottom:30px">
+                <h2 style="color:#4338ca; margin-bottom:5px">تقرير الإنجاز الشهري للعمليات</h2>
+                <p style="color:#666">تاريخ إصدار التقرير: ${new Date().toLocaleDateString('ar-EG')}</p>
+            </div>
+            <table style="width:100%; border-collapse:collapse; text-align:right; font-size:14px">
+                <tr style="background:#f1f5f9; color:#333"><th style="padding:10px">رقم المهمة</th><th style="padding:10px">العنوان</th><th style="padding:10px">المكلف</th><th style="padding:10px">الحالة والتقييم</th><th style="padding:10px">تاريخ التسليم</th></tr>
+                ${rows}
+            </table>
+        `;
+        
+        document.body.appendChild(el);
+
+        html2pdf().set({
+            margin: 10,
+            filename: `GQ_Monthly_Report_${Date.now()}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(el).save().then(() => {
+            document.body.removeChild(el); // حذف العنصر المؤقت بعد التصدير
+        });
+    },
+
+    // --- TASKS ---
+    viewTasks: (area) => {
+        document.getElementById('page-title').innerText = "إدارة العمليات";
+        let h = "";
+        
+        const p = Logic.session.perms || {};
+        if(Logic.session.role === 'super' || Logic.session.role === 'admin' || p.t_create || p.full) {
+            h += `
+            <div class="card">
+                <h3>🆕 إصدار تكليف جديد</h3><br>
+                <div class="grid-3">
+                    <input id="t-name" placeholder="عنوان المهمة">
+                    <select id="t-user">
+                        <option value="all">الجميع</option>
+                        ${Logic.db.users.filter(u => u.status === 'active').map(u=>`<option value="${u.user}">${u.name}</option>`).join('')}
+                    </select>
+                    <select id="t-prio">
+                        <option value="low">أولوية: عادية</option><option value="med">متوسطة</option><option value="high">عاجلة</option>
+                    </select>
+                </div>
+                <textarea id="t-info" placeholder="وصف المهمة..."></textarea>
+                <input type="date" id="t-date">
+                <button class="btn btn-p" onclick="Logic.createTask()">إرسال التكليف</button>
+            </div>`;
+        }
+
+        h += `
+        <div class="search-box">
+            <input type="text" id="task-search-input" placeholder="بحث برقم المهمة (مثال: GQ-1234)..." value="${Logic.taskSearch}" oninput="Logic.taskSearch = this.value; Logic.renderTasks();">
+        </div>
+        <div id="task-list-render"></div>`;
+        
+        area.innerHTML = h;
+        Logic.renderTasks();
+    },
+
+    createTask: () => {
+        const t = {
+            id: 'GQ-' + Math.floor(1000 + Math.random() * 9000), title: document.getElementById('t-name').value, desc: document.getElementById('t-info').value, to: document.getElementById('t-user').value, prio: document.getElementById('t-prio').value, deadline: document.getElementById('t-date').value,
+            status: 'pending', from: Logic.session.user, note: "", adminNote: "", rating: "", file: ""
+        };
+        if(!t.title || !t.deadline) return Logic.toast('أكمل البيانات');
+        Logic.db.tasks.push(t); Logic.save(); Logic.renderTasks(); Logic.toast('تم إصدار التكليف بنجاح');
+        Logic.pushNotif(`📋 تم إصدار تكليف جديد برقم #${t.id} من قبل ${Logic.session.name}`, t.to);
+    },
+
+    renderTasks: () => {
+        const target = document.getElementById('task-list-render');
+        if(!target) return;
+
+        const p = Logic.session.perms || {};
+        const isFullAdmin = Logic.session.role === 'super' || Logic.session.role === 'admin' || p.full;
+        const canRecv = isFullAdmin || p.t_recv;
+
+        let list = Logic.db.tasks.filter(t => t.to === 'all' || t.to === Logic.session.user || t.from === Logic.session.user || isFullAdmin);
+        if(Logic.taskSearch.trim() !== "") list = list.filter(t => t.id.toLowerCase().includes(Logic.taskSearch.toLowerCase()));
+
+        target.innerHTML = list.reverse().map(t => `
+            <div class="task-card task-status-${t.status}">
+                <div style="display:flex; justify-content:space-between">
+                    <b>#${t.id} - ${t.title}</b>
+                    <span style="font-size:12px; font-weight:bold; color:var(--st-${t.status})">
+                        ${t.status === 'pending' ? 'بانتظار البدء' : t.status === 'progress' ? 'قيد التنفيذ' : t.status === 'submitted' ? 'بانتظار مراجعة المسؤول' : 'مكتملة ومؤكدة'}
+                    </span>
+                </div>
+                <p style="margin:10px 0; color:var(--text-dim)">${t.desc}</p>
+                <div style="font-size:12px; color:var(--text-dim); margin-bottom:10px">تاريخ التسليم: ${t.deadline}</div>
+                
+                ${t.note ? `<div style="background:rgba(0,0,0,0.3); padding:10px; margin-top:10px; border-radius:8px; font-size:14px; border-right:3px solid var(--st-progress)"><b>ملاحظات العضو:</b> ${t.note}</div>` : ''}
+                
+                ${t.adminNote ? `
+                    <div style="background:rgba(99, 102, 241, 0.1); padding:10px; margin-top:5px; border-radius:8px; font-size:14px; border-right:3px solid var(--st-completed)">
+                        <b>تقييم وملاحظات الإدارة:</b> ${t.adminNote}
+                        ${t.rating ? `<br><span style="color:#f59e0b; font-size:16px; margin-top:5px; display:block">التقييم: ${'⭐'.repeat(t.rating)}</span>` : ''}
+                    </div>` : ''}
+
+                <div style="margin-top:15px">
+                    ${t.status === 'pending' && (t.to === Logic.session.user || t.to === 'all') && canRecv ? `<button class="btn btn-p" onclick="Logic.setTaskStatus('${t.id}','progress')">بدء التنفيذ</button>` : ''}
+                    
+                    ${t.status === 'progress' && (t.to === Logic.session.user || t.to === 'all') && canRecv ? `
+                        <div style="background:#1e293b; padding:15px; border-radius:10px; border:1px solid #334155;">
+                            <textarea id="t-note-${t.id}" placeholder="اكتب ما تم إنجازه..." style="margin-bottom:10px; height:80px"></textarea>
+                            <button class="btn btn-p" style="background:var(--st-submitted); width:100%" onclick="Logic.submitTaskForReview('${t.id}')">إرسال للمراجعة</button>
+                        </div>
+                    ` : ''}
+
+                    ${t.status === 'submitted' && (Logic.session.role === 'super' || Logic.session.role === 'admin' || p.t_create || p.full) ? `
+                        <div style="background:rgba(245, 158, 11, 0.1); padding:15px; border-radius:10px; border:1px solid var(--st-submitted);">
+                            <p style="font-size:13px; margin-bottom:10px"><b>مراجعة وتقييم المسؤول:</b></p>
+                            <textarea id="t-admin-note-${t.id}" placeholder="أضف تقييمك أو ملاحظاتك للعضو..." style="margin-bottom:10px; height:60px"></textarea>
+                            <select id="t-rating-${t.id}" style="margin-bottom:10px">
+                                <option value="5">⭐⭐⭐⭐⭐ - ممتاز جداً</option>
+                                <option value="4">⭐⭐⭐⭐ - جيد جداً</option>
+                                <option value="3">⭐⭐⭐ - جيد</option>
+                                <option value="2">⭐⭐ - مقبول</option>
+                                <option value="1">⭐ - ضعيف</option>
+                            </select>
+                            <button class="btn btn-p" style="background:var(--st-completed); width:100%" onclick="Logic.approveTask('${t.id}')">اعتماد وإغلاق المهمة نهائياً</button>
+                        </div>
+                    ` : ''}
+                    
+                    ${Logic.session.role === 'super' || Logic.session.role === 'admin' ? `<button class="btn btn-d btn-sm" style="margin-top:10px" onclick="Logic.deleteTask('${t.id}')">🗑️ حذف المهمة</button>` : ''}
+                </div>
+            </div>
+        `).join('');
+    },
+
+    setTaskStatus: (id, s) => { Logic.db.tasks.find(x => x.id === id).status = s; Logic.save(); Logic.renderTasks(); },
+    
+    deleteTask: (id) => {
+        if(confirm('هل أنت متأكد من حذف هذه المهمة نهائياً؟')) {
+            Logic.db.tasks = Logic.db.tasks.filter(t => t.id !== id);
+            Logic.save(); Logic.renderTasks(); Logic.toast('تم حذف المهمة');
+        }
+    },
+
+    submitTaskForReview: (id) => {
+        const note = document.getElementById(`t-note-${id}`).value;
+        if(!note.trim()) return Logic.toast('يجب كتابة ملاحظات التنفيذ أولاً');
+        const task = Logic.db.tasks.find(x => x.id === id);
+        task.status = 'submitted'; task.note = note; Logic.save(); Logic.toast('تم إرسال المهمة للمسؤول للمراجعة'); Logic.renderTasks();
+        Logic.pushNotif(`✔️ تم تسليم المهمة #${id} من قبل ${Logic.session.name} وهي بانتظار المراجعة`, task.from);
+    },
+
+    approveTask: (id) => {
+        const adminNote = document.getElementById(`t-admin-note-${id}`).value;
+        const rating = document.getElementById(`t-rating-${id}`).value;
+        const task = Logic.db.tasks.find(x => x.id === id);
+        task.status = 'completed'; task.adminNote = adminNote || "تم القبول والاعتماد"; task.rating = rating;
+        Logic.save(); Logic.toast('تم اعتماد تنفيذ المهمة وتقييمها بنجاح'); Logic.renderTasks();
+        Logic.pushNotif(`✅ تم اعتماد وإغلاق المهمة #${id} الخاصة بك من قبل الإدارة. التقييم: ${rating} نجوم`, task.to);
+    },
+
+    // --- MEMBERS ---
+    viewMembers: (area) => {
+        document.getElementById('page-title').innerText = "إدارة الأعضاء والهيكل";
+        let regForm = "";
+        const p = Logic.session.perms || {};
+        if(Logic.session.role === 'super' || Logic.session.role === 'admin' || p.m_reg || p.full) {
+            regForm = `
+            <div class="card">
+                <h3>👥 تسجيل عضو / مسؤول جديد</h3><br>
+                <div class="grid-3">
+                    <input id="m-name" placeholder="الاسم الكامل">
+                    <input id="m-user" placeholder="اسم المستخدم">
+                    <input id="m-pass" placeholder="كلمة المرور">
+                    <input id="m-title" placeholder="الصفة (مثلاً: رئيس قسم)">
+                    <input id="m-nid" type="text" maxlength="14" placeholder="الرقم القومي (14 رقم)">
+                    <input id="m-ph" type="text" maxlength="11" placeholder="رقم الهاتف">
+                    <input id="m-mid" type="text" placeholder="رقم العضوية">
+                    <select id="m-sec">${sectors.map(s => `<option>${s}</option>`).join('')}</select>
+                    <select id="m-gov">${governorates.map(g => `<option>${g}</option>`).join('')}</select>
+                    <select id="m-regyear">${[2021,2022,2023,2024,2025,2026].map(y => `<option>${y}</option>`).join('')}</select>
+                    <select id="m-role"><option value="member">عضو</option><option value="admin">مسؤول</option></select>
+                </div>
+                <div style="margin:10px 0"><label style="font-size:13px; color:var(--text-dim)">الصورة الشخصية:</label><input type="file" onchange="Logic.handleFile(this, 'register')"></div>
+                <button class="btn btn-p" style="width:100%" onclick="Logic.registerMember()">حفظ وتفعيل الحساب</button>
+            </div>`;
+        }
+
+        area.innerHTML = `
+            ${regForm}
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:15px">
+                    <h3>دليل المستخدمين</h3>
+                    <button class="btn btn-sm" style="background:#10b981; color:#fff" onclick="Logic.exportUsersExcel()">📊 تصدير Excel</button>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="member-search-input" placeholder="بحث باسم العضو أو رقم العضوية..." value="${Logic.memberSearch}" oninput="Logic.memberSearch = this.value; Logic.renderMembers();">
+                </div>
+                <div id="members-render"></div>
+            </div>
+        `;
+        Logic.renderMembers();
+    },
+
+    exportUsersExcel: () => {
+        let csv = '\uFEFF'; 
+        csv += 'الاسم,اسم المستخدم,الرقم القومي,الهاتف,رقم العضوية,الصفة,القطاع,المحافظة,الدور,الحالة\n';
+        Logic.db.users.forEach(u => {
+            csv += `${u.name},${u.user},${u.nid},${u.phone},${u.mid},${u.title || ''},${u.sector},${u.gov},${u.role==='member'?'عضو':'مسؤول'},${u.status==='active'?'مفعل':'موقوف'}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `GQ_Users_${Date.now()}.csv`;
+        link.click();
+        Logic.toast('تم تصدير ملف Excel بنجاح');
+    },
+
+    handleFile: (input, target) => {
+        const reader = new FileReader();
+        reader.onload = (e) => { if(target === 'register') Logic.imageBuffer = e.target.result; if(target === 'edit') Logic.editImageBuffer = e.target.result; };
+        if(input.files[0]) reader.readAsDataURL(input.files[0]);
+    },
+
+    registerMember: () => {
+        const u = {
+            user: document.getElementById('m-user').value, pass: document.getElementById('m-pass').value, name: document.getElementById('m-name').value, title: document.getElementById('m-title').value, nid: document.getElementById('m-nid').value, phone: document.getElementById('m-ph').value, mid: document.getElementById('m-mid').value, gov: document.getElementById('m-gov').value, sector: document.getElementById('m-sec').value, regYear: document.getElementById('m-regyear').value, role: document.getElementById('m-role').value, img: Logic.imageBuffer, status: 'active',
+            perms: { t_recv:true, t_create:false, s_pub:true, s_priv:true, m_reg:false, m_view:false, r_reply:false, d_wipe:false, d_export:false, full:false }
+        };
+        if(!u.user || !u.name || !u.mid) return Logic.toast('يرجى إكمال البيانات الأساسية');
+        Logic.db.users.push(u); Logic.save(); Logic.imageBuffer = ""; Logic.toast('تم الإضافة بنجاح'); Logic.renderMembers();
+        Logic.pushNotif(`👥 تم تسجيل عضوية جديدة باسم: ${u.name}`, 'admins');
+    },
+
+    renderMembers: () => {
+        const div = document.getElementById('members-render');
+        if(!div) return;
+
+        let visibleUsers = Logic.db.users.map((u, i) => { u.originalIndex = i; return u; });
+
+        if(Logic.memberSearch.trim() !== "") {
+            const q = Logic.memberSearch.toLowerCase();
+            visibleUsers = visibleUsers.filter(u => u.name.toLowerCase().includes(q) || u.mid.includes(q));
+        }
+
+        div.innerHTML = visibleUsers.map(u => `
+            <div class="member-item" style="${u.role !== 'member' ? 'border-right: 4px solid var(--p-med)' : ''}">
+                <div style="display:flex; align-items:center; gap:15px">
+                    <img src="${u.img || 'https://ui-avatars.com/api/?name='+u.name}" class="avatar" style="width:50px; height:50px">
+                    <div>
+                        <b style="font-size:16px">${u.name}</b> ${u.role !== 'member' ? '<span style="color:#f59e0b; font-size:12px">🛡️ مسؤول</span>' : ''}<br>
+                        <span style="color:var(--text-dim); font-size:12px">${u.title || ''} | عـضوية: ${u.mid} | الحالة: ${u.status==='active'?'مفعل':'موقوف'}</span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap">
+                    <button class="btn btn-sm" style="background:#3b82f6; color:#fff" onclick="Logic.openEditModal(${u.originalIndex})">تعديل بيانات</button>
+                    <button class="btn btn-sm" style="background:#10b981; color:#fff" onclick="Logic.viewUserModal(${u.originalIndex})">عرض</button>
+                    ${Logic.session.role === 'super' ? `<button class="btn btn-sm" style="background:#8b5cf6; color:#fff" onclick="Logic.openPermsModal(${u.originalIndex})">الصلاحيات</button>` : ''}
+                    ${(Logic.session.role === 'super' || Logic.session.role === 'admin') ? `<button class="btn btn-sm" style="background:var(--p-med); color:#fff" onclick="Logic.toggleUserStatus(${u.originalIndex})">${u.status==='active'?'إيقاف':'تفعيل'}</button>` : ''}
+                    ${Logic.session.role === 'super' ? `<button class="btn btn-sm btn-d" onclick="Logic.deleteUser(${u.originalIndex})">حذف</button>` : ''}
+                </div>
+            </div>
+        `).join('');
+    },
+
+    viewUserModal: (i) => {
+        const u = Logic.db.users[i];
+        const userTasks = Logic.db.tasks.filter(t => t.to === u.user);
+        const userCompleted = userTasks.filter(t => t.status === 'completed').length;
+        const userScore = userTasks.length ? Math.round((userCompleted / userTasks.length) * 100) : 0;
+
+        const modal = document.getElementById('modal-container');
+        modal.innerHTML = `
+            <div class="modal-overlay" onclick="if(event.target===this) Logic.closeModal()">
+                <div class="modal-box">
+                    <h3 style="margin-bottom:20px; border-bottom:1px solid #334155; padding-bottom:10px">بيانات العضو: ${u.name}</h3>
+                    <div style="text-align:center; margin-bottom:20px">
+                         <img src="${u.img || 'https://ui-avatars.com/api/?name='+u.name}" class="avatar" style="width:100px; height:100px;">
+                    </div>
+                    
+                    <div style="background:rgba(0,0,0,0.2); padding:15px; border-radius:10px; text-align:center; margin-bottom:20px; border:1px solid rgba(255,255,255,0.05)">
+                        <h4 style="color:var(--text-dim); margin-bottom:10px">التقييم الشخصي والأداء</h4>
+                        <div class="grid-3" style="font-size:14px">
+                            <div>المهام الموكلة: <b>${userTasks.length}</b></div>
+                            <div>المهام المنجزة: <b style="color:var(--st-completed)">${userCompleted}</b></div>
+                            <div>نسبة الإنجاز: <b style="color:var(--primary)">${userScore}%</b></div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div><label class="disabled-field">الاسم</label><input value="${u.name}" disabled class="disabled-field"></div>
+                        <div><label class="disabled-field">اسم المستخدم</label><input value="${u.user}" disabled class="disabled-field"></div>
+                        <div><label class="disabled-field">الرقم القومي</label><input value="${u.nid}" disabled class="disabled-field"></div>
+                        <div><label class="disabled-field">الهاتف</label><input value="${u.phone}" disabled class="disabled-field"></div>
+                        <div><label class="disabled-field">رقم العضوية</label><input value="${u.mid}" disabled class="disabled-field"></div>
+                        <div><label class="disabled-field">الصفة</label><input value="${u.title || ''}" disabled class="disabled-field"></div>
+                        <div><label class="disabled-field">القطاع</label><input value="${u.sector}" disabled class="disabled-field"></div>
+                        <div><label class="disabled-field">المحافظة</label><input value="${u.gov}" disabled class="disabled-field"></div>
+                    </div>
+                    <button class="btn btn-d" style="width:100%; margin-top:20px" onclick="Logic.closeModal()">إغلاق النافذة</button>
+                </div>
+            </div>
+        `;
+        modal.classList.remove('hidden');
+    },
+
+    toggleUserStatus: (i) => {
+        const u = Logic.db.users[i];
+        u.status = u.status === 'active' ? 'inactive' : 'active'; Logic.save(); Logic.renderMembers(); Logic.toast(`تم ${u.status === 'active' ? 'تفعيل' : 'إيقاف'} حساب العضو: ${u.name}`);
+        Logic.pushNotif(`⚠️ تم ${u.status === 'active' ? 'تفعيل' : 'إيقاف'} حسابك من قبل الإدارة`, u.user);
+    },
+
+    openEditModal: (i) => {
+        const u = Logic.db.users[i]; Logic.editImageBuffer = u.img;
+        const isSelfEditing = (Logic.session.user === u.user && Logic.session.role === 'member');
+        const disableAttr = isSelfEditing ? 'disabled' : ''; const disableClass = isSelfEditing ? 'disabled-field' : '';
+        const modal = document.getElementById('modal-container');
+        modal.innerHTML = `
+            <div class="modal-overlay" onclick="if(event.target===this) Logic.closeModal()">
+                <div class="modal-box">
+                    <h3 style="margin-bottom:20px">تعديل بيانات: ${u.name}</h3>
+                    <div class="grid-2">
+                        <div><label>الاسم</label><input id="e-name" value="${u.name}" ${disableAttr} class="${disableClass}"></div>
+                        <div><label>اسم المستخدم</label><input id="e-user" value="${u.user}" ${disableAttr} class="${disableClass}"></div>
+                        <div><label>كلمة المرور</label><input id="e-pass" value="${u.pass}"></div>
+                        <div><label>الرقم القومي</label><input id="e-nid" value="${u.nid}" ${disableAttr} class="${disableClass}"></div>
+                        <div><label>الهاتف</label><input id="e-ph" value="${u.phone}"></div>
+                        <div><label>رقم العضوية</label><input id="e-mid" value="${u.mid}" ${disableAttr} class="${disableClass}"></div>
+                        <div><label>الصفة</label><input id="e-title" value="${u.title || ''}" ${disableAttr} class="${disableClass}"></div>
+                        <div><label>القطاع</label><select id="e-sec" ${disableAttr} class="${disableClass}">${sectors.map(s => `<option ${u.sector===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                    </div>
+                    <label>الصورة الشخصية:</label><input type="file" onchange="Logic.handleFile(this, 'edit')">
+                    <div style="display:flex; gap:10px; margin-top:20px"><button class="btn btn-p" style="flex:1" onclick="Logic.saveUserEdit(${i})">حفظ التعديلات</button><button class="btn btn-d" onclick="Logic.closeModal()">إلغاء</button></div>
+                </div>
+            </div>
+        `;
+        modal.classList.remove('hidden');
+    },
+
+    saveUserEdit: (i) => {
+        const u = Logic.db.users[i]; const isSelfEditing = (Logic.session.user === u.user && Logic.session.role === 'member');
+        if(!isSelfEditing) { u.name = document.getElementById('e-name').value; u.user = document.getElementById('e-user').value; u.nid = document.getElementById('e-nid').value; u.mid = document.getElementById('e-mid').value; u.title = document.getElementById('e-title').value; u.sector = document.getElementById('e-sec').value; }
+        u.pass = document.getElementById('e-pass').value; u.phone = document.getElementById('e-ph').value;
+        if(Logic.editImageBuffer) u.img = Logic.editImageBuffer;
+        
+        Logic.save(); 
+        if(u.user === Logic.session.user) Logic.session = u; 
+        Logic.closeModal(); Logic.renderUI(); Logic.toast('تم حفظ التعديلات');
+    },
+
+    openPermsModal: (i) => {
+        const u = Logic.db.users[i]; const p = u.perms || {}; const modal = document.getElementById('modal-container');
+        modal.innerHTML = `
+            <div class="modal-overlay" onclick="if(event.target===this) Logic.closeModal()">
+                <div class="modal-box">
+                    <h3>إدارة صلاحيات: ${u.name}</h3><br>
+                    <div class="perm-grid">
+                        <div class="perm-item"><input type="checkbox" id="p-trecv" ${p.t_recv?'checked':''}> <label>استقبال المهام وتسليمها</label></div>
+                        <div class="perm-item"><input type="checkbox" id="p-tcreate" ${p.t_create?'checked':''}> <label>إنشاء مهام</label></div>
+                        <div class="perm-item"><input type="checkbox" id="p-spub" ${p.s_pub?'checked':''}> <label>عرض بطاقات التقدم العامة</label></div>
+                        <div class="perm-item"><input type="checkbox" id="p-spriv" ${p.s_priv?'checked':''}> <label>عرض بطاقات التقدم الشخصية</label></div>
+                        <div class="perm-item"><input type="checkbox" id="p-mreg" ${p.m_reg?'checked':''}> <label>تسجيل اعضاء</label></div>
+                        <div class="perm-item"><input type="checkbox" id="p-mview" ${p.m_view?'checked':''}> <label>عرض بيانات الأعضاء</label></div>
+                        <div class="perm-item"><input type="checkbox" id="p-rreply" ${p.r_reply?'checked':''}> <label>الرد علي الطلبات</label></div>
+                        <div class="perm-item"><input type="checkbox" id="p-dwipe" ${p.d_wipe?'checked':''}> <label>حذف بيانات المنصة</label></div>
+                        <div class="perm-item"><input type="checkbox" id="p-dexp" ${p.d_export?'checked':''}> <label>تنزيل بيانات المنصة</label></div>
+                        <div class="perm-item"><input type="checkbox" id="p-full" ${p.full?'checked':''}> <label>تحكم كامل</label></div>
+                    </div>
+                    <button class="btn btn-p" style="width:100%" onclick="Logic.saveUserPerms(${i})">تحديث الصلاحيات</button>
+                </div>
+            </div>
+        `;
+        modal.classList.remove('hidden');
+    },
+
+    saveUserPerms: (i) => {
+        Logic.db.users[i].perms = {
+            t_recv: document.getElementById('p-trecv').checked, t_create: document.getElementById('p-tcreate').checked,
+            s_pub: document.getElementById('p-spub').checked, s_priv: document.getElementById('p-spriv').checked,
+            m_reg: document.getElementById('p-mreg').checked, m_view: document.getElementById('p-mview').checked,
+            r_reply: document.getElementById('p-rreply').checked, d_wipe: document.getElementById('p-dwipe').checked,
+            d_export: document.getElementById('p-dexp').checked, full: document.getElementById('p-full').checked
+        };
+        // إذا كان المسؤول يقوم بتعديل صلاحياته هو شخصياً، يتم تحديث الجلسة فوراً
+        if(Logic.db.users[i].user === Logic.session.user) {
+            Logic.session.perms = Logic.db.users[i].perms;
+        }
+        Logic.save(); Logic.closeModal(); Logic.toast('تم التحديث بنجاح وتفعيل الصلاحيات'); Logic.renderUI();
+    },
+
+    deleteUser: (i) => { if(confirm('هل أنت متأكد من حذف الحساب نهائياً؟')) { Logic.db.users.splice(i,1); Logic.save(); Logic.renderMembers(); } },
+    closeModal: () => { document.getElementById('modal-container').classList.add('hidden'); },
+
+    // --- REQUESTS ---
+    viewReqs: (area) => {
+        document.getElementById('page-title').innerText = "مركز الطلبات";
+        area.innerHTML = `
+            <div class="card">
+                <h3>📤 إرسال طلب جديد</h3><br>
+                <textarea id="req-text" placeholder="اكتب طلبك هنا..."></textarea>
+                <button class="btn btn-p" onclick="Logic.sendRequest()">إرسال الطلب</button>
+            </div>
+            <div id="requests-feed"></div>
+        `;
+        Logic.renderRequests();
+    },
+
+    sendRequest: () => {
+        const r = { id: Date.now(), from: Logic.session.user, name: Logic.session.name, body: document.getElementById('req-text').value, reply: "" };
+        if(!r.body.trim()) return Logic.toast('اكتب محتوى الطلب');
+        Logic.db.requests.push(r); Logic.save(); Logic.renderRequests(); Logic.pushNotif(`📥 تم إرسال طلب جديد من قبل العضو: ${Logic.session.name}`, 'admins'); Logic.toast('تم الإرسال بنجاح');
+    },
+
+    renderRequests: () => {
+        const p = Logic.session.perms || {};
+        const isFullAdmin = Logic.session.role === 'super' || Logic.session.role === 'admin' || p.full;
+        const canReply = isFullAdmin || p.r_reply;
+        
+        const list = Logic.db.requests.filter(r => r.from === Logic.session.user || canReply);
+        document.getElementById('requests-feed').innerHTML = list.reverse().map(r => `
+            <div class="card">
+                <div style="display:flex; justify-content:space-between">
+                    <b>من: ${r.name}</b>
+                    ${isFullAdmin ? `<button class="btn btn-sm btn-d" onclick="Logic.deleteRequest('${r.id}')">حذف</button>` : ''}
+                </div>
+                <p style="margin:10px 0">${r.body}</p>
+                ${r.reply ? `<div style="background:rgba(0,0,0,0.2); padding:10px; border-radius:8px"><b>الرد:</b> ${r.reply}</div>` : 
+                (canReply ? `<button class="btn btn-sm btn-p" onclick="Logic.replyRequest('${r.id}')">الرد على الطلب</button>` : '<small>قيد المراجعة...</small>')}
+            </div>
+        `).join('');
+    },
+
+    replyRequest: (id) => {
+        const txt = prompt("أدخل الرد:");
+        if(txt) {
+            const req = Logic.db.requests.find(x => String(x.id) === String(id)); 
+            if(req) {
+                req.reply = txt; Logic.save(); Logic.renderRequests(); Logic.pushNotif(`💬 تم الرد على طلبك المرسل للإدارة`, req.from);
+            }
+        }
+    },
+    
+    deleteRequest: (id) => {
+        if(confirm('هل أنت متأكد من حذف هذا الطلب/الرسالة؟')) {
+            // تم تصحيح المشكلة هنا بتوحيد نوع البيانات عند المقارنة (String)
+            Logic.db.requests = Logic.db.requests.filter(r => String(r.id) !== String(id)); 
+            Logic.save(); Logic.renderRequests(); Logic.toast('تم الحذف');
+        }
+    },
+
+    // --- PROFILE ---
+    viewProfile: (area) => {
+        document.getElementById('page-title').innerText = "إعدادات الحساب";
+        const meIndex = Logic.db.users.findIndex(u => u.user === Logic.session.user);
+        
+        area.innerHTML = `
+            <div class="card" id="profile-render">
+                <div style="text-align:center; margin-bottom:30px">
+                    <img src="${Logic.session.img || 'https://ui-avatars.com/api/?name='+Logic.session.name}" class="avatar" style="width:120px; height:120px; display:block; margin:0 auto">
+                    <h2 style="margin-top:10px">${Logic.session.name}</h2>
+                    <p style="color:var(--text-dim)">${Logic.session.title || 'عضو'} | ${Logic.session.sector}</p>
+                </div>
+                <div style="text-align:center">
+                    <button class="btn btn-p" onclick="Logic.openEditModal(${meIndex})">✏️ تعديل بياناتي</button>
+                </div>
+            </div>
+        `;
+    },
+
+    wipeAll: () => { if(confirm('تحذير نهائي: هل أنت متأكد من حذف كافة بيانات المنصة؟ سيتم فقدان كل المهام والأعضاء ولا يمكن التراجع!')) { localStorage.clear(); location.reload(); } },
+
+    exportAll: () => {
+        const data = JSON.stringify(Logic.db, null, 2); const blob = new Blob([data], {type: 'application/json'}); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `GQ_System_Backup_${new Date().toLocaleDateString()}.json`; a.click();
+    }
+};
+
+window.onload = () => { 
+    Logic.toast('نظام منصة مهامي جاهز');
+    Logic.startClock();
+};
+</script>
+</body>
+</html>
